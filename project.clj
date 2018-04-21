@@ -6,6 +6,7 @@
                  [ring/ring-defaults "0.3.1"]
                  [compojure "1.6.0"]
                  [hiccup "1.0.5"]
+                 [cheshire "5.6.1"]
                  [clj-http "3.8.0"]]
   :plugins [[lein-ring "0.12.1"]]
   :ring {:handler my-exercise.core/handler}

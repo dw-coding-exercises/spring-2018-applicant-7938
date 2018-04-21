@@ -6,16 +6,46 @@
             [clj-http.client :as client]
             [clojure.pprint :as pprint]))
 
-;;Notes
+;;Notes/TODO's
 ;;N.B. "curl 'https://api.turbovote.org/elections/upcoming?district-divisions=1'" does not fail fast
-;;TODO what happens if something errors out? 404 setup
-;;Request timeouts for turbovote api
+;;TODO what happens if something errors out? 404 setup and displaying a helpful error to the user
+;;TODO Request timeouts for turbovote api
+;;TODO Create a clojure.spec for OCD 
+;;TODO If anything goes wrong, then the entire web app freaks out and null pointer exceptions win the day.
 
 ;;Constants 
 (def TURBOVOTE-URL
   "https://api.turbovote.org/elections/upcoming")
 
+(def GOOGLE-MAPS-GEOCODING-URL
+  "https://maps.googleapis.com/maps/api/geocode/json")
+
+;;This is bad to do!!! But not really any other options in terms of secret management and coordiation right now.
+(def GOOGLE-MAPS-GEOCODING-API-KEY
+  "AIzaSyC3T4g-5LkOIcb0fJPuOoMMOQMViRYa3Sw")
+
 ;; Data marshalling 
+(defn get-county-of-address
+  "Takes in an address, sends the data over to google, parses the results out and
+  turns it into an ocd style county name."
+  [{street :street street-2 :street-2 city :city state :state zip :zip}]
+  (let [address (s/join ", " (filter (complement empty?) [street street-2 city state]))
+        result (client/get GOOGLE-MAPS-GEOCODING-URL
+                           {:query-params {"address" address
+                                           "key" GOOGLE-MAPS-GEOCODING-API-KEY}
+                            :as :json})
+        address-components (-> result :body :results first :address_components)
+        county-name (->> address-components
+                         (filter #(= (:types %) ["administrative_area_level_2" "political"]))
+                         first
+                         :long_name)
+        ocd-county-name (-> county-name
+                        (s/replace "County" "")
+                        s/trim
+                        (s/replace " " "_")
+                        s/lower-case)]
+    ocd-county-name))
+
 (defn get-upcoming-elections
   "Submit the ocd-id to the TurboVote API and get back the results."
   [ocd-id]
@@ -25,11 +55,13 @@
 (defn convert-address-to-ocd
   "Converts the address submitted via query parameters of the POST request and
   converts it into the corresponding OCD-ID's for the state and city."
-  [{street :street street-2 :street-2 city :city state :state zip :zip}]
+  [{street :street street-2 :street-2 city :city state :state zip :zip :as m}]
   (let [state-ocd (str "ocd-division/country:us/state:" (s/lower-case state))
         city (-> city (s/replace " " "_") s/lower-case)
-        place-ocd (str state-ocd "/place:" city)]
-    (str state-ocd "," place-ocd)))
+        place-ocd (str state-ocd "/place:" city)
+        ocd-county-name (get-county-of-address m)
+        county-ocd (str state-ocd "/county:" ocd-county-name)]
+    (str state-ocd "," place-ocd "," county-ocd)))
 
 ;; Display
 (defn header
@@ -81,8 +113,8 @@
 
 ;;Development vars
 (def example-data
-  {:city "Newark Test"
-   :state "NJ"
+  {:city "Wyoming"
+   :state "OH"
    :street "303 Fleming Road"
    :street-2 "" 
    :zip "45215"})
