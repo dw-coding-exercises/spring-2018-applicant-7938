@@ -10,10 +10,11 @@
 ;;;;;;;;;;;
 
 ;;N.B. "curl 'https://api.turbovote.org/elections/upcoming?district-divisions=1'" does not fail fast
-;;TODO what happens if something errors out? 404 setup and displaying a helpful error to the user
+;;TODO what happens if something errors out? 404 setup and displaying a helpful error to the user, beyond the sorry.
 ;;TODO Request timeouts for turbovote api
 ;;TODO Create a clojure.spec for OCD 
 ;;TODO If anything goes wrong al all, then the entire web app freaks out and null pointer exceptions win the day.
+;;TODO If there aren't any upcoming local elections, then an error is thrown somehow and the sorry page is shown 
 
 ;;Constants 
 (def TURBOVOTE-URL
@@ -114,11 +115,15 @@
   params contained an address submitted by the user and returns a page with the
   upcoming elections for that address."
   [request]
-  (let [results (-> request :params convert-address-to-ocd get-upcoming-elections :body)]
-    (html5
-     (header request)
-     (display-request request)
-     (display-results results))))
+  (try 
+    (let [results (-> request :params convert-address-to-ocd get-upcoming-elections :body)]
+      (html5
+       (header request)
+       (display-request request)
+       (display-results results)))
+    (catch Exception e
+      (println e)
+      (html5 "Sorry, we had a problem processing your request."))))
 
 ;;;;;;;;;;;
 ;;Development vars
