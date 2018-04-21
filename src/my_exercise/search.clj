@@ -3,15 +3,17 @@
             [ring.util.anti-forgery :refer [anti-forgery-field]]
             [my-exercise.us-state :as us-state]
             [clojure.string :as s]
-            [clj-http.client :as client]
-            [clojure.pprint :as pprint]))
+            [clj-http.client :as client]))
 
+;;;;;;;;;;;
 ;;Notes/TODO's
+;;;;;;;;;;;
+
 ;;N.B. "curl 'https://api.turbovote.org/elections/upcoming?district-divisions=1'" does not fail fast
 ;;TODO what happens if something errors out? 404 setup and displaying a helpful error to the user
 ;;TODO Request timeouts for turbovote api
 ;;TODO Create a clojure.spec for OCD 
-;;TODO If anything goes wrong, then the entire web app freaks out and null pointer exceptions win the day.
+;;TODO If anything goes wrong al all, then the entire web app freaks out and null pointer exceptions win the day.
 
 ;;Constants 
 (def TURBOVOTE-URL
@@ -24,7 +26,10 @@
 (def GOOGLE-MAPS-GEOCODING-API-KEY
   "AIzaSyC3T4g-5LkOIcb0fJPuOoMMOQMViRYa3Sw")
 
+;;;;;;;;;;;
 ;; Data marshalling 
+;;;;;;;;;;;
+
 (defn get-county-of-address
   "Takes in an address, sends the data over to google, parses the results out and
   turns it into an ocd style county name."
@@ -63,7 +68,11 @@
         county-ocd (str state-ocd "/county:" ocd-county-name)]
     (str state-ocd "," place-ocd "," county-ocd)))
 
+
+;;;;;;;;;;;
 ;; Display
+;;;;;;;;;;;
+
 (defn header
   "Provide a simple HTML header for the page."
   [_]
@@ -111,7 +120,10 @@
      (display-request request)
      (display-results results))))
 
+;;;;;;;;;;;
 ;;Development vars
+;;;;;;;;;;;
+
 (def example-data
   {:city "Wyoming"
    :state "OH"
